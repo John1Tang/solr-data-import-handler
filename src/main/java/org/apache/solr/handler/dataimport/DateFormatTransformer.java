@@ -16,13 +16,13 @@
  */
 package org.apache.solr.handler.dataimport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.invoke.MethodHandles;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -38,68 +38,68 @@ import org.slf4j.LoggerFactory;
  * @since solr 1.3
  */
 public class DateFormatTransformer extends Transformer {
-  private Map<String, SimpleDateFormat> fmtCache = new HashMap<>();
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private final Map<String, SimpleDateFormat> fmtCache = new HashMap<>();
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public Object transformRow(Map<String, Object> aRow, Context context) {
+    @Override
+    @SuppressWarnings("unchecked")
+    public Object transformRow(Map<String, Object> aRow, Context context) {
 
-    for (Map<String, String> map : context.getAllEntityFields()) {
-      Locale locale = Locale.ENGLISH; // we default to ENGLISH for dates for full Java 9 compatibility
-      String customLocale = map.get(LOCALE);
-      if (customLocale != null) {
-        try {
-          locale = new Locale.Builder().setLanguageTag(customLocale).build();
-        } catch (IllformedLocaleException e) {
-          throw new DataImportHandlerException(DataImportHandlerException.SEVERE, "Invalid Locale specified: " + customLocale, e);
+        for (Map<String, String> map : context.getAllEntityFields()) {
+            Locale locale = Locale.ENGLISH; // we default to ENGLISH for dates for full Java 9 compatibility
+            String customLocale = map.get(LOCALE);
+            if (customLocale != null) {
+                try {
+                    locale = new Locale.Builder().setLanguageTag(customLocale).build();
+                } catch (IllformedLocaleException e) {
+                    throw new DataImportHandlerException(DataImportHandlerException.SEVERE, "Invalid Locale specified: " + customLocale, e);
+                }
+            }
+
+            String fmt = map.get(DATE_TIME_FMT);
+            if (fmt == null)
+                continue;
+            VariableResolver resolver = context.getVariableResolver();
+            fmt = resolver.replaceTokens(fmt);
+            String column = map.get(DataImporter.COLUMN);
+            String srcCol = map.get(RegexTransformer.SRC_COL_NAME);
+            if (srcCol == null)
+                srcCol = column;
+            try {
+                Object o = aRow.get(srcCol);
+                if (o instanceof List) {
+                    List inputs = (List) o;
+                    List<Date> results = new ArrayList<>();
+                    for (Object input : inputs) {
+                        results.add(process(input, fmt, locale));
+                    }
+                    aRow.put(column, results);
+                } else {
+                    if (o != null) {
+                        aRow.put(column, process(o, fmt, locale));
+                    }
+                }
+            } catch (ParseException e) {
+                log.warn("Could not parse a Date field ", e);
+            }
         }
-      }
+        return aRow;
+    }
 
-      String fmt = map.get(DATE_TIME_FMT);
-      if (fmt == null)
-        continue;
-      VariableResolver resolver = context.getVariableResolver();
-      fmt = resolver.replaceTokens(fmt);
-      String column = map.get(DataImporter.COLUMN);
-      String srcCol = map.get(RegexTransformer.SRC_COL_NAME);
-      if (srcCol == null)
-        srcCol = column;
-      try {
-        Object o = aRow.get(srcCol);
-        if (o instanceof List) {
-          List inputs = (List) o;
-          List<Date> results = new ArrayList<>();
-          for (Object input : inputs) {
-            results.add(process(input, fmt, locale));
-          }
-          aRow.put(column, results);
-        } else {
-          if (o != null) {
-            aRow.put(column, process(o, fmt, locale));
-          }
+    private Date process(Object value, String format, Locale locale) throws ParseException {
+        if (value == null) return null;
+        String strVal = value.toString().trim();
+        if (strVal.length() == 0)
+            return null;
+        SimpleDateFormat fmt = fmtCache.get(format);
+        if (fmt == null) {
+            fmt = new SimpleDateFormat(format, locale);
+            fmtCache.put(format, fmt);
         }
-      } catch (ParseException e) {
-        log.warn("Could not parse a Date field ", e);
-      }
+        return fmt.parse(strVal);
     }
-    return aRow;
-  }
 
-  private Date process(Object value, String format, Locale locale) throws ParseException {
-    if (value == null) return null;
-    String strVal = value.toString().trim();
-    if (strVal.length() == 0)
-      return null;
-    SimpleDateFormat fmt = fmtCache.get(format);
-    if (fmt == null) {
-      fmt = new SimpleDateFormat(format, locale);
-      fmtCache.put(format, fmt);
-    }
-    return fmt.parse(strVal);
-  }
+    public static final String DATE_TIME_FMT = "dateTimeFormat";
 
-  public static final String DATE_TIME_FMT = "dateTimeFormat";
-  
-  public static final String LOCALE = "locale";
+    public static final String LOCALE = "locale";
 }

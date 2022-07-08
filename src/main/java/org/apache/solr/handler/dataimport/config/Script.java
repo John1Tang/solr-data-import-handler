@@ -19,23 +19,25 @@ package org.apache.solr.handler.dataimport.config;
 import org.w3c.dom.Element;
 
 public class Script {
-  private final String language;
-  private final String text;
-  
-  public Script(Element e) {
-    this.language = ConfigParseUtil.getStringAttribute(e, "language", "JavaScript");
-    StringBuilder buffer = new StringBuilder();
-    String script = ConfigParseUtil.getText(e, buffer);
-    if (script != null) {
-      this.text = script.trim();
-    } else {
-      this.text = null;
+    private final String language;
+    private final String text;
+
+    public Script(Element e) {
+        this.language = ConfigParseUtil.getStringAttribute(e, "language", "JavaScript");
+        StringBuilder buffer = new StringBuilder();
+        String script = ConfigParseUtil.getText(e, buffer);
+        if (script != null) {
+            this.text = script.trim();
+        } else {
+            this.text = null;
+        }
     }
-  }  
-  public String getLanguage() {
-    return language;
-  }  
-  public String getText() {
-    return text;
-  }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public String getText() {
+        return text;
+    }
 }

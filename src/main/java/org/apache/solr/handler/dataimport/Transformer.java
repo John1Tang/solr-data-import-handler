@@ -33,18 +33,17 @@ import java.util.Map;
  * <p>
  * <b>This API is experimental and may change in the future.</b>
  *
- *
  * @since solr 1.3
  */
 public abstract class Transformer {
-  /**
-   * The input is a row of data and the output has to be a new row.
-   *
-   * @param context The current context
-   * @param row     A row of data
-   * @return The changed data. It must be a {@link Map}&lt;{@link String}, {@link Object}&gt; if it returns
-   *         only one row or if there are multiple rows to be returned it must
-   *         be a {@link java.util.List}&lt;{@link Map}&lt;{@link String}, {@link Object}&gt;&gt;
-   */
-  public abstract Object transformRow(Map<String, Object> row, Context context);
+    /**
+     * The input is a row of data and the output has to be a new row.
+     *
+     * @param context The current context
+     * @param row     A row of data
+     * @return The changed data. It must be a {@link Map}&lt;{@link String}, {@link Object}&gt; if it returns
+     * only one row or if there are multiple rows to be returned it must
+     * be a {@link java.util.List}&lt;{@link Map}&lt;{@link String}, {@link Object}&gt;&gt;
+     */
+    public abstract Object transformRow(Map<String, Object> row, Context context);
 }

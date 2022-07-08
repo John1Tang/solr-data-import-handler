@@ -17,11 +17,13 @@
 package org.apache.solr.handler.dataimport;
 
 import org.apache.solr.common.util.ContentStream;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
 
-import java.io.InputStream;
-import java.io.IOException;
-import java.util.Properties;
 /**
  * <p> A data source implementation which can be used to read binary stream from content streams. </p> <p> Refer to <a
  * href="http://wiki.apache.org/solr/DataImportHandler">http://wiki.apache.org/solr/DataImportHandler</a> for more
@@ -33,38 +35,38 @@ import java.util.Properties;
  */
 
 public class BinContentStreamDataSource extends DataSource<InputStream> {
-  private ContextImpl context;
-  private ContentStream contentStream;
-  private InputStream in;
+    private ContextImpl context;
+    private ContentStream contentStream;
+    private InputStream in;
 
 
-  @Override
-  public void init(Context context, Properties initProps) {
-    this.context = (ContextImpl) context;
-  }
-
-  @Override
-  public InputStream getData(String query) {
-     contentStream = context.getDocBuilder().getReqParams().getContentStream();
-    if (contentStream == null)
-      throw new DataImportHandlerException(SEVERE, "No stream available. The request has no body");
-    try {
-      return in = contentStream.getStream();
-    } catch (IOException e) {
-      DataImportHandlerException.wrapAndThrow(SEVERE, e);
-      return null;
+    @Override
+    public void init(Context context, Properties initProps) {
+        this.context = (ContextImpl) context;
     }
-  }
 
-  @Override
-  public void close() {
-     if (contentStream != null) {
-      try {
-        if (in == null) in = contentStream.getStream();
-        in.close();
-      } catch (IOException e) {
-        /*no op*/
-      }
-    } 
-  }
+    @Override
+    public InputStream getData(String query) {
+        contentStream = context.getDocBuilder().getReqParams().getContentStream();
+        if (contentStream == null)
+            throw new DataImportHandlerException(SEVERE, "No stream available. The request has no body");
+        try {
+            return in = contentStream.getStream();
+        } catch (IOException e) {
+            DataImportHandlerException.wrapAndThrow(SEVERE, e);
+            return null;
+        }
+    }
+
+    @Override
+    public void close() {
+        if (contentStream != null) {
+            try {
+                if (in == null) in = contentStream.getStream();
+                in.close();
+            } catch (IOException e) {
+                /*no op*/
+            }
+        }
+    }
 }

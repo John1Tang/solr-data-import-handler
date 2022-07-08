@@ -16,14 +16,15 @@
  */
 package org.apache.solr.handler.dataimport;
 
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.wrapAndThrow;
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
-
-import java.io.InputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.Properties;
+
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.wrapAndThrow;
+
 /**
  * <p>
  * A DataSource which reads from local files
@@ -39,26 +40,27 @@ import java.util.Properties;
  * @since solr 3.1
  */
 
-public class BinFileDataSource extends DataSource<InputStream>{
-   protected String basePath;
-  @Override
-  public void init(Context context, Properties initProps) {
-     basePath = initProps.getProperty(FileDataSource.BASE_PATH);
-  }
+public class BinFileDataSource extends DataSource<InputStream> {
+    protected String basePath;
 
-  @Override
-  public InputStream getData(String query) {
-    File f = FileDataSource.getFile(basePath,query);
-    try {
-      return new FileInputStream(f);
-    } catch (FileNotFoundException e) {
-      wrapAndThrow(SEVERE,e,"Unable to open file "+f.getAbsolutePath());
-      return null;
+    @Override
+    public void init(Context context, Properties initProps) {
+        basePath = initProps.getProperty(FileDataSource.BASE_PATH);
     }
-  }
 
-  @Override
-  public void close() {
+    @Override
+    public InputStream getData(String query) {
+        File f = FileDataSource.getFile(basePath, query);
+        try {
+            return new FileInputStream(f);
+        } catch (FileNotFoundException e) {
+            wrapAndThrow(SEVERE, e, "Unable to open file " + f.getAbsolutePath());
+            return null;
+        }
+    }
 
-  }
+    @Override
+    public void close() {
+
+    }
 }

@@ -16,51 +16,51 @@
  */
 package org.apache.solr.handler.dataimport;
 
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.common.util.StrUtils;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.util.NamedList;
-import org.apache.solr.common.util.StrUtils;
-
 public class DebugInfo {
 
-  private static final class ChildRollupDocs extends AbstractList<SolrInputDocument> {
+    private static final class ChildRollupDocs extends AbstractList<SolrInputDocument> {
 
-    private List<SolrInputDocument> delegate = new ArrayList<>();
+        private final List<SolrInputDocument> delegate = new ArrayList<>();
 
-    @Override
-    public SolrInputDocument get(int index) {
-      return delegate.get(index);
+        @Override
+        public SolrInputDocument get(int index) {
+            return delegate.get(index);
+        }
+
+        @Override
+        public int size() {
+            return delegate.size();
+        }
+
+        public boolean add(SolrInputDocument e) {
+            SolrInputDocument transformed = e.deepCopy();
+            if (transformed.hasChildDocuments()) {
+                ChildRollupDocs childList = new ChildRollupDocs();
+                childList.addAll(transformed.getChildDocuments());
+                transformed.addField("_childDocuments_", childList);
+                transformed.getChildDocuments().clear();
+            }
+            return delegate.add(transformed);
+        }
     }
 
-    @Override
-    public int size() {
-      return delegate.size();
+    public List<SolrInputDocument> debugDocuments = new ChildRollupDocs();
+
+    public NamedList<String> debugVerboseOutput = null;
+    public boolean verbose;
+
+    public DebugInfo(Map<String, Object> requestParams) {
+        verbose = StrUtils.parseBool((String) requestParams.get("verbose"), false);
+        debugVerboseOutput = new NamedList<>();
     }
-
-    public boolean add(SolrInputDocument e) {
-      SolrInputDocument transformed = e.deepCopy();
-      if (transformed.hasChildDocuments()) {
-        ChildRollupDocs childList = new ChildRollupDocs();
-        childList.addAll(transformed.getChildDocuments());
-        transformed.addField("_childDocuments_", childList);
-        transformed.getChildDocuments().clear();
-      }
-      return delegate.add(transformed);
-    }
-  }
-
-  public List<SolrInputDocument> debugDocuments = new ChildRollupDocs();
-
-  public NamedList<String> debugVerboseOutput = null;
-  public boolean verbose;
-  
-  public DebugInfo(Map<String,Object> requestParams) {
-    verbose = StrUtils.parseBool((String) requestParams.get("verbose"), false);
-    debugVerboseOutput = new NamedList<>();
-  }
 }
 

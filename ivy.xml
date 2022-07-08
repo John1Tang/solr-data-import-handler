@@ -17,18 +17,18 @@
    under the License.    
 -->
 <ivy-module version="2.0">
-  <info organisation="org.apache.solr" module="dataimporthandler"/>
-  <configurations defaultconfmapping="compile->master;test->master">
-    <conf name="compile" transitive="false"/> <!-- keep unused 'compile' configuration to allow build to succeed -->
-    <conf name="test" transitive="false"/>
-  </configurations>
-  <dependencies>
-    <dependency org="org.hsqldb" name="hsqldb" rev="${/org.hsqldb/hsqldb}" conf="test"/>
-    <dependency org="org.apache.derby" name="derby" rev="${/org.apache.derby/derby}" conf="test"/>
+    <info organisation="org.apache.solr" module="dataimporthandler"/>
+    <configurations defaultconfmapping="compile->master;test->master">
+        <conf name="compile" transitive="false"/> <!-- keep unused 'compile' configuration to allow build to succeed -->
+        <conf name="test" transitive="false"/>
+    </configurations>
+    <dependencies>
+        <dependency org="org.hsqldb" name="hsqldb" rev="${/org.hsqldb/hsqldb}" conf="test"/>
+        <dependency org="org.apache.derby" name="derby" rev="${/org.apache.derby/derby}" conf="test"/>
 
-    <dependency org="org.mockito" name="mockito-core" rev="${/org.mockito/mockito-core}" conf="test"/>
-    <dependency org="net.bytebuddy" name="byte-buddy" rev="${/net.bytebuddy/byte-buddy}" conf="test"/>
-    <dependency org="org.objenesis" name="objenesis" rev="${/org.objenesis/objenesis}" conf="test"/>
-    <exclude org="*" ext="*" matcher="regexp" type="${ivy.exclude.types}"/> 
-  </dependencies>
+        <dependency org="org.mockito" name="mockito-core" rev="${/org.mockito/mockito-core}" conf="test"/>
+        <dependency org="net.bytebuddy" name="byte-buddy" rev="${/net.bytebuddy/byte-buddy}" conf="test"/>
+        <dependency org="org.objenesis" name="objenesis" rev="${/org.objenesis/objenesis}" conf="test"/>
+        <exclude org="*" ext="*" matcher="regexp" type="${ivy.exclude.types}"/>
+    </dependencies>
 </ivy-module>

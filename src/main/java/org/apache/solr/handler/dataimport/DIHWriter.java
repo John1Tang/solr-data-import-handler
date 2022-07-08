@@ -15,85 +15,84 @@
  * limitations under the License.
  */
 package org.apache.solr.handler.dataimport;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.solr.common.SolrInputDocument;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @lucene.experimental
- *
  */
 public interface DIHWriter {
 
-  /**
-   * <p>
-   *  If this writer supports transactions or commit points, then commit any changes,
-   *  optionally optimizing the data for read/write performance
-   * </p>
-   */
-  public void commit(boolean optimize);
+    /**
+     * <p>
+     * If this writer supports transactions or commit points, then commit any changes,
+     * optionally optimizing the data for read/write performance
+     * </p>
+     */
+    void commit(boolean optimize);
 
-  /**
-   * <p>
-   *  Release resources used by this writer.  After calling close, reads &amp; updates will throw exceptions.
-   * </p>
-   */
-  public void close();
+    /**
+     * <p>
+     * Release resources used by this writer.  After calling close, reads &amp; updates will throw exceptions.
+     * </p>
+     */
+    void close();
 
-  /**
-   * <p>
-   *  If this writer supports transactions or commit points, then roll back any uncommitted changes.
-   * </p>
-   */
-  public void rollback();
+    /**
+     * <p>
+     * If this writer supports transactions or commit points, then roll back any uncommitted changes.
+     * </p>
+     */
+    void rollback();
 
-  /**
-   * <p>
-   *  Delete from the writer's underlying data store based the passed-in writer-specific query. (Optional Operation)
-   * </p>
-   */
-  public void deleteByQuery(String q);
+    /**
+     * <p>
+     * Delete from the writer's underlying data store based the passed-in writer-specific query. (Optional Operation)
+     * </p>
+     */
+    void deleteByQuery(String q);
 
-  /**
-   * <p>
-   *  Delete everything from the writer's underlying data store
-   * </p>
-   */
-  public void doDeleteAll();
+    /**
+     * <p>
+     * Delete everything from the writer's underlying data store
+     * </p>
+     */
+    void doDeleteAll();
 
-  /**
-   * <p>
-   *  Delete from the writer's underlying data store based on the passed-in Primary Key
-   * </p>
-   */
-  public void deleteDoc(Object key);
-
-
-
-  /**
-   * <p>
-   *  Add a document to this writer's underlying data store.
-   * </p>
-   * @return true on success, false on failure
-   */
-  public boolean upload(SolrInputDocument doc);
+    /**
+     * <p>
+     * Delete from the writer's underlying data store based on the passed-in Primary Key
+     * </p>
+     */
+    void deleteDoc(Object key);
 
 
+    /**
+     * <p>
+     * Add a document to this writer's underlying data store.
+     * </p>
+     *
+     * @return true on success, false on failure
+     */
+    boolean upload(SolrInputDocument doc);
 
-  /**
-   * <p>
-   *  Provide context information for this writer.  init() should be called before using the writer.
-   * </p>
-   */
-  public void init(Context context) ;
+
+    /**
+     * <p>
+     * Provide context information for this writer.  init() should be called before using the writer.
+     * </p>
+     */
+    void init(Context context);
 
 
-  /**
-   * <p>
-   *  Specify the keys to be modified by a delta update (required by writers that can store duplicate keys)
-   * </p>
-   */
-  public void setDeltaKeys(Set<Map<String, Object>> deltaKeys) ;
+    /**
+     * <p>
+     * Specify the keys to be modified by a delta update (required by writers that can store duplicate keys)
+     * </p>
+     */
+    void setDeltaKeys(Set<Map<String, Object>> deltaKeys);
 
 }

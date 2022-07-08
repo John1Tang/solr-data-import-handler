@@ -37,118 +37,117 @@ import java.util.regex.Pattern;
  * <p>
  * <b>This API is experimental and may change in the future.</b>
  *
- *
  * @since solr 1.4
  */
 public class URLDataSource extends DataSource<Reader> {
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-  private String baseUrl;
+    private String baseUrl;
 
-  private String encoding;
+    private String encoding;
 
-  private int connectionTimeout = CONNECTION_TIMEOUT;
+    private int connectionTimeout = CONNECTION_TIMEOUT;
 
-  private int readTimeout = READ_TIMEOUT;
+    private int readTimeout = READ_TIMEOUT;
 
-  private Context context;
+    private Context context;
 
-  private Properties initProps;
+    private Properties initProps;
 
-  public URLDataSource() {
-  }
-
-  @Override
-  public void init(Context context, Properties initProps) {
-    this.context = context;
-    this.initProps = initProps;
-    
-    baseUrl = getInitPropWithReplacements(BASE_URL);
-    if (getInitPropWithReplacements(ENCODING) != null)
-      encoding = getInitPropWithReplacements(ENCODING);
-    String cTimeout = getInitPropWithReplacements(CONNECTION_TIMEOUT_FIELD_NAME);
-    String rTimeout = getInitPropWithReplacements(READ_TIMEOUT_FIELD_NAME);
-    if (cTimeout != null) {
-      try {
-        connectionTimeout = Integer.parseInt(cTimeout);
-      } catch (NumberFormatException e) {
-        log.warn("Invalid connection timeout: " + cTimeout);
-      }
+    public URLDataSource() {
     }
-    if (rTimeout != null) {
-      try {
-        readTimeout = Integer.parseInt(rTimeout);
-      } catch (NumberFormatException e) {
-        log.warn("Invalid read timeout: " + rTimeout);
-      }
-    }
-  }
 
-  @Override
-  public Reader getData(String query) {
-    URL url = null;
-    try {
-      if (URIMETHOD.matcher(query).find()) url = new URL(query);
-      else url = new URL(baseUrl + query);
+    @Override
+    public void init(Context context, Properties initProps) {
+        this.context = context;
+        this.initProps = initProps;
 
-      log.debug("Accessing URL: " + url.toString());
-
-      URLConnection conn = url.openConnection();
-      conn.setConnectTimeout(connectionTimeout);
-      conn.setReadTimeout(readTimeout);
-      InputStream in = conn.getInputStream();
-      String enc = encoding;
-      if (enc == null) {
-        String cType = conn.getContentType();
-        if (cType != null) {
-          Matcher m = CHARSET_PATTERN.matcher(cType);
-          if (m.find()) {
-            enc = m.group(1);
-          }
+        baseUrl = getInitPropWithReplacements(BASE_URL);
+        if (getInitPropWithReplacements(ENCODING) != null)
+            encoding = getInitPropWithReplacements(ENCODING);
+        String cTimeout = getInitPropWithReplacements(CONNECTION_TIMEOUT_FIELD_NAME);
+        String rTimeout = getInitPropWithReplacements(READ_TIMEOUT_FIELD_NAME);
+        if (cTimeout != null) {
+            try {
+                connectionTimeout = Integer.parseInt(cTimeout);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid connection timeout: " + cTimeout);
+            }
         }
-      }
-      if (enc == null)
-        enc = UTF_8;
-      DataImporter.QUERY_COUNT.get().incrementAndGet();
-      return new InputStreamReader(in, enc);
-    } catch (Exception e) {
-      log.error("Exception thrown while getting data", e);
-      throw new DataImportHandlerException(DataImportHandlerException.SEVERE,
-              "Exception in invoking url " + url, e);
+        if (rTimeout != null) {
+            try {
+                readTimeout = Integer.parseInt(rTimeout);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid read timeout: " + rTimeout);
+            }
+        }
     }
-  }
 
-  @Override
-  public void close() {
-  }
+    @Override
+    public Reader getData(String query) {
+        URL url = null;
+        try {
+            if (URIMETHOD.matcher(query).find()) url = new URL(query);
+            else url = new URL(baseUrl + query);
 
-  public String getBaseUrl() {
-    return baseUrl;
-  }
+            log.debug("Accessing URL: " + url);
 
-  private String getInitPropWithReplacements(String propertyName) {
-    final String expr = initProps.getProperty(propertyName);
-    if (expr == null) {
-      return null;
+            URLConnection conn = url.openConnection();
+            conn.setConnectTimeout(connectionTimeout);
+            conn.setReadTimeout(readTimeout);
+            InputStream in = conn.getInputStream();
+            String enc = encoding;
+            if (enc == null) {
+                String cType = conn.getContentType();
+                if (cType != null) {
+                    Matcher m = CHARSET_PATTERN.matcher(cType);
+                    if (m.find()) {
+                        enc = m.group(1);
+                    }
+                }
+            }
+            if (enc == null)
+                enc = UTF_8;
+            DataImporter.QUERY_COUNT.get().incrementAndGet();
+            return new InputStreamReader(in, enc);
+        } catch (Exception e) {
+            log.error("Exception thrown while getting data", e);
+            throw new DataImportHandlerException(DataImportHandlerException.SEVERE,
+                    "Exception in invoking url " + url, e);
+        }
     }
-    return context.replaceTokens(expr);
-  }
 
-  static final Pattern URIMETHOD = Pattern.compile("\\w{3,}:/");
+    @Override
+    public void close() {
+    }
 
-  private static final Pattern CHARSET_PATTERN = Pattern.compile(".*?charset=(.*)$", Pattern.CASE_INSENSITIVE);
+    public String getBaseUrl() {
+        return baseUrl;
+    }
 
-  public static final String ENCODING = "encoding";
+    private String getInitPropWithReplacements(String propertyName) {
+        final String expr = initProps.getProperty(propertyName);
+        if (expr == null) {
+            return null;
+        }
+        return context.replaceTokens(expr);
+    }
 
-  public static final String BASE_URL = "baseUrl";
+    static final Pattern URIMETHOD = Pattern.compile("\\w{3,}:/");
 
-  public static final String UTF_8 = StandardCharsets.UTF_8.name();
+    private static final Pattern CHARSET_PATTERN = Pattern.compile(".*?charset=(.*)$", Pattern.CASE_INSENSITIVE);
 
-  public static final String CONNECTION_TIMEOUT_FIELD_NAME = "connectionTimeout";
+    public static final String ENCODING = "encoding";
 
-  public static final String READ_TIMEOUT_FIELD_NAME = "readTimeout";
+    public static final String BASE_URL = "baseUrl";
 
-  public static final int CONNECTION_TIMEOUT = 5000;
+    public static final String UTF_8 = StandardCharsets.UTF_8.name();
 
-  public static final int READ_TIMEOUT = 10000;
+    public static final String CONNECTION_TIMEOUT_FIELD_NAME = "connectionTimeout";
+
+    public static final String READ_TIMEOUT_FIELD_NAME = "readTimeout";
+
+    public static final int CONNECTION_TIMEOUT = 5000;
+
+    public static final int READ_TIMEOUT = 10000;
 }

@@ -16,9 +16,6 @@
  */
 package org.apache.solr.handler.dataimport;
 
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.wrapAndThrow;
-import static org.apache.solr.handler.dataimport.XPathEntityProcessor.URL;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
@@ -27,6 +24,10 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.wrapAndThrow;
+import static org.apache.solr.handler.dataimport.XPathEntityProcessor.URL;
+
 /**
  * <p>An implementation of {@link EntityProcessor} which reads data from a url/file and give out a row which contains one String
  * value. The name of the field is 'plainText'.
@@ -34,44 +35,44 @@ import java.util.Map;
  * @since solr 1.4
  */
 public class PlainTextEntityProcessor extends EntityProcessorBase {
-  private boolean ended = false;
+    private boolean ended = false;
 
-  @Override
-  public void init(Context context) {
-    super.init(context);
-    ended = false;
-  }
-
-  @Override
-  public Map<String, Object> nextRow() {
-    if (ended) return null;
-    DataSource<Reader> ds = context.getDataSource();
-    String url = context.replaceTokens(context.getEntityAttribute(URL));
-    Reader r = null;
-    try {
-      r = ds.getData(url);
-    } catch (Exception e) {
-      wrapAndThrow(SEVERE, e, "Exception reading url : " + url);
+    @Override
+    public void init(Context context) {
+        super.init(context);
+        ended = false;
     }
-    StringWriter sw = new StringWriter();
-    char[] buf = new char[1024];
-    while (true) {
-      int len = 0;
-      try {
-        len = r.read(buf);
-      } catch (IOException e) {
+
+    @Override
+    public Map<String, Object> nextRow() {
+        if (ended) return null;
+        DataSource<Reader> ds = context.getDataSource();
+        String url = context.replaceTokens(context.getEntityAttribute(URL));
+        Reader r = null;
+        try {
+            r = ds.getData(url);
+        } catch (Exception e) {
+            wrapAndThrow(SEVERE, e, "Exception reading url : " + url);
+        }
+        StringWriter sw = new StringWriter();
+        char[] buf = new char[1024];
+        while (true) {
+            int len = 0;
+            try {
+                len = r.read(buf);
+            } catch (IOException e) {
+                IOUtils.closeQuietly(r);
+                wrapAndThrow(SEVERE, e, "Exception reading url : " + url);
+            }
+            if (len <= 0) break;
+            sw.append(new String(buf, 0, len));
+        }
+        Map<String, Object> row = new HashMap<>();
+        row.put(PLAIN_TEXT, sw.toString());
+        ended = true;
         IOUtils.closeQuietly(r);
-        wrapAndThrow(SEVERE, e, "Exception reading url : " + url);
-      }
-      if (len <= 0) break;
-      sw.append(new String(buf, 0, len));
+        return row;
     }
-    Map<String, Object> row = new HashMap<>();
-    row.put(PLAIN_TEXT, sw.toString());
-    ended = true;
-    IOUtils.closeQuietly(r);
-    return row;
-  }
 
-  public static final String PLAIN_TEXT = "plainText";
+    public static final String PLAIN_TEXT = "plainText";
 }

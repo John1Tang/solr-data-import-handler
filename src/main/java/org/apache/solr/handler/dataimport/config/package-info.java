@@ -14,8 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-/** 
+
+/**
  * Utility classes for parsing &amp; modeling DIH configuration.
  */
 package org.apache.solr.handler.dataimport.config;

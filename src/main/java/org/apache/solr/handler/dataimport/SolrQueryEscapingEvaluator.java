@@ -16,20 +16,20 @@
  */
 package org.apache.solr.handler.dataimport;
 
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
+import org.apache.solr.client.solrj.util.ClientUtils;
 
 import java.util.List;
 
-import org.apache.solr.client.solrj.util.ClientUtils;
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
 
 public class SolrQueryEscapingEvaluator extends Evaluator {
-  @Override
-  public String evaluate(String expression, Context context) {
-    List<Object> l = parseParams(expression, context.getVariableResolver());
-    if (l.size() != 1) {
-      throw new DataImportHandlerException(SEVERE, "'escapeQueryChars' must have at least one parameter ");
+    @Override
+    public String evaluate(String expression, Context context) {
+        List<Object> l = parseParams(expression, context.getVariableResolver());
+        if (l.size() != 1) {
+            throw new DataImportHandlerException(SEVERE, "'escapeQueryChars' must have at least one parameter ");
+        }
+        String s = l.get(0).toString();
+        return ClientUtils.escapeQueryChars(s);
     }
-    String s = l.get(0).toString();
-    return ClientUtils.escapeQueryChars(s);
-  }
 }

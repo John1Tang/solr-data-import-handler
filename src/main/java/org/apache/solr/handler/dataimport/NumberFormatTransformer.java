@@ -15,14 +15,11 @@
  * limitations under the License.
  */
 package org.apache.solr.handler.dataimport;
+
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.ParsePosition;
-import java.util.ArrayList;
-import java.util.IllformedLocaleException;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <p>
@@ -43,91 +40,91 @@ import java.util.Map;
  */
 public class NumberFormatTransformer extends Transformer {
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public Object transformRow(Map<String, Object> row, Context context) {
-    for (Map<String, String> fld : context.getAllEntityFields()) {
-      String style = context.replaceTokens(fld.get(FORMAT_STYLE));
-      if (style != null) {
-        String column = fld.get(DataImporter.COLUMN);
-        String srcCol = fld.get(RegexTransformer.SRC_COL_NAME);
-        String localeStr = context.replaceTokens(fld.get(LOCALE));
-        if (srcCol == null)
-          srcCol = column;
-        Locale locale = Locale.ROOT;
-        if (localeStr != null) {
-          try {
-            locale = new Locale.Builder().setLanguageTag(localeStr).build();
-          } catch (IllformedLocaleException e) {
-            throw new DataImportHandlerException(DataImportHandlerException.SEVERE,
-                "Invalid Locale '" + localeStr + "' specified for field: " + fld, e);
-          }
-        }
+    @Override
+    @SuppressWarnings("unchecked")
+    public Object transformRow(Map<String, Object> row, Context context) {
+        for (Map<String, String> fld : context.getAllEntityFields()) {
+            String style = context.replaceTokens(fld.get(FORMAT_STYLE));
+            if (style != null) {
+                String column = fld.get(DataImporter.COLUMN);
+                String srcCol = fld.get(RegexTransformer.SRC_COL_NAME);
+                String localeStr = context.replaceTokens(fld.get(LOCALE));
+                if (srcCol == null)
+                    srcCol = column;
+                Locale locale = Locale.ROOT;
+                if (localeStr != null) {
+                    try {
+                        locale = new Locale.Builder().setLanguageTag(localeStr).build();
+                    } catch (IllformedLocaleException e) {
+                        throw new DataImportHandlerException(DataImportHandlerException.SEVERE,
+                                "Invalid Locale '" + localeStr + "' specified for field: " + fld, e);
+                    }
+                }
 
-        Object val = row.get(srcCol);
-        String styleSmall = style.toLowerCase(Locale.ROOT);
+                Object val = row.get(srcCol);
+                String styleSmall = style.toLowerCase(Locale.ROOT);
 
-        if (val instanceof List) {
-          List<String> inputs = (List) val;
-          List results = new ArrayList();
-          for (String input : inputs) {
-            try {
-              results.add(process(input, styleSmall, locale));
-            } catch (ParseException e) {
-              throw new DataImportHandlerException(
-                      DataImportHandlerException.SEVERE,
-                      "Failed to apply NumberFormat on column: " + column, e);
+                if (val instanceof List) {
+                    List<String> inputs = (List) val;
+                    List results = new ArrayList();
+                    for (String input : inputs) {
+                        try {
+                            results.add(process(input, styleSmall, locale));
+                        } catch (ParseException e) {
+                            throw new DataImportHandlerException(
+                                    DataImportHandlerException.SEVERE,
+                                    "Failed to apply NumberFormat on column: " + column, e);
+                        }
+                    }
+                    row.put(column, results);
+                } else {
+                    if (val == null || val.toString().trim().equals(""))
+                        continue;
+                    try {
+                        row.put(column, process(val.toString(), styleSmall, locale));
+                    } catch (ParseException e) {
+                        throw new DataImportHandlerException(
+                                DataImportHandlerException.SEVERE,
+                                "Failed to apply NumberFormat on column: " + column, e);
+                    }
+                }
             }
-          }
-          row.put(column, results);
-        } else {
-          if (val == null || val.toString().trim().equals(""))
-            continue;
-          try {
-            row.put(column, process(val.toString(), styleSmall, locale));
-          } catch (ParseException e) {
-            throw new DataImportHandlerException(
-                    DataImportHandlerException.SEVERE,
-                    "Failed to apply NumberFormat on column: " + column, e);
-          }
         }
-      }
-    }
-    return row;
-  }
-
-  private Number process(String val, String style, Locale locale) throws ParseException {
-    if (INTEGER.equals(style)) {
-      return parseNumber(val, NumberFormat.getIntegerInstance(locale));
-    } else if (NUMBER.equals(style)) {
-      return parseNumber(val, NumberFormat.getNumberInstance(locale));
-    } else if (CURRENCY.equals(style)) {
-      return parseNumber(val, NumberFormat.getCurrencyInstance(locale));
-    } else if (PERCENT.equals(style)) {
-      return parseNumber(val, NumberFormat.getPercentInstance(locale));
+        return row;
     }
 
-    return null;
-  }
+    private Number process(String val, String style, Locale locale) throws ParseException {
+        if (INTEGER.equals(style)) {
+            return parseNumber(val, NumberFormat.getIntegerInstance(locale));
+        } else if (NUMBER.equals(style)) {
+            return parseNumber(val, NumberFormat.getNumberInstance(locale));
+        } else if (CURRENCY.equals(style)) {
+            return parseNumber(val, NumberFormat.getCurrencyInstance(locale));
+        } else if (PERCENT.equals(style)) {
+            return parseNumber(val, NumberFormat.getPercentInstance(locale));
+        }
 
-  private Number parseNumber(String val, NumberFormat numFormat) throws ParseException {
-    ParsePosition parsePos = new ParsePosition(0);
-    Number num = numFormat.parse(val, parsePos);
-    if (parsePos.getIndex() != val.length()) {
-      throw new ParseException("illegal number format", parsePos.getIndex());
+        return null;
     }
-    return num;
-  }
 
-  public static final String FORMAT_STYLE = "formatStyle";
+    private Number parseNumber(String val, NumberFormat numFormat) throws ParseException {
+        ParsePosition parsePos = new ParsePosition(0);
+        Number num = numFormat.parse(val, parsePos);
+        if (parsePos.getIndex() != val.length()) {
+            throw new ParseException("illegal number format", parsePos.getIndex());
+        }
+        return num;
+    }
 
-  public static final String LOCALE = "locale";
+    public static final String FORMAT_STYLE = "formatStyle";
 
-  public static final String NUMBER = "number";
+    public static final String LOCALE = "locale";
 
-  public static final String PERCENT = "percent";
+    public static final String NUMBER = "number";
 
-  public static final String INTEGER = "integer";
+    public static final String PERCENT = "percent";
 
-  public static final String CURRENCY = "currency";
+    public static final String INTEGER = "integer";
+
+    public static final String CURRENCY = "currency";
 }

@@ -16,13 +16,14 @@
  */
 package org.apache.solr.handler.dataimport;
 
-import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -43,72 +44,71 @@ import org.slf4j.LoggerFactory;
  * <p>
  * <b>This API is experimental and may change in the future.</b>
  *
- *
  * @since solr 1.3
  */
 public class TemplateTransformer extends Transformer {
 
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-  private Map<String ,List<String>> templateVsVars = new HashMap<>();
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private final Map<String, List<String>> templateVsVars = new HashMap<>();
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public Object transformRow(Map<String, Object> row, Context context) {
+    @Override
+    @SuppressWarnings("unchecked")
+    public Object transformRow(Map<String, Object> row, Context context) {
 
 
-    VariableResolver resolver = context.getVariableResolver();
-    // Add current row to the copy of resolver map
+        VariableResolver resolver = context.getVariableResolver();
+        // Add current row to the copy of resolver map
 
-    for (Map<String, String> map : context.getAllEntityFields()) {
-      map.entrySet();
-      String expr = map.get(TEMPLATE);
-      if (expr == null)
-        continue;
+        for (Map<String, String> map : context.getAllEntityFields()) {
+            map.entrySet();
+            String expr = map.get(TEMPLATE);
+            if (expr == null)
+                continue;
 
-      String column = map.get(DataImporter.COLUMN);
+            String column = map.get(DataImporter.COLUMN);
 
-      // Verify if all variables can be resolved or not
-      boolean resolvable = true;
-      List<String> variables = this.templateVsVars.get(expr);
-      if(variables == null){
-        variables = resolver.getVariables(expr);
-        this.templateVsVars.put(expr, variables);
-      }
-      for (String v : variables) {
-        if (resolver.resolve(v) == null) {
-          log.warn("Unable to resolve variable: " + v
-                  + " while parsing expression: " + expr);
-          resolvable = false;
+            // Verify if all variables can be resolved or not
+            boolean resolvable = true;
+            List<String> variables = this.templateVsVars.get(expr);
+            if (variables == null) {
+                variables = resolver.getVariables(expr);
+                this.templateVsVars.put(expr, variables);
+            }
+            for (String v : variables) {
+                if (resolver.resolve(v) == null) {
+                    log.warn("Unable to resolve variable: " + v
+                            + " while parsing expression: " + expr);
+                    resolvable = false;
+                }
+            }
+
+            if (!resolvable)
+                continue;
+            if (variables.size() == 1 && expr.startsWith("${") && expr.endsWith("}")) {
+                addToRow(column, row, resolver.resolve(variables.get(0)));
+            } else {
+                addToRow(column, row, resolver.replaceTokens(expr));
+            }
         }
-      }
 
-      if (!resolvable)
-        continue;
-      if(variables.size() == 1 && expr.startsWith("${") && expr.endsWith("}")){
-        addToRow(column, row, resolver.resolve(variables.get(0)));
-      } else {
-        addToRow(column, row, resolver.replaceTokens(expr));
-      }
+        return row;
     }
 
-    return row;
-  }
-
-  private void addToRow(String key, Map<String, Object> row, Object value) {
-    Object prevVal = row.get(key);
-    if (prevVal != null) {
-      if (prevVal instanceof List) {
-        ((List) prevVal).add(value);
-      } else {
-        ArrayList<Object> valList = new ArrayList<Object>();
-        valList.add(prevVal);
-        valList.add(value);
-        row.put(key, valList);
-      }
-    } else {
-      row.put(key, value);
+    private void addToRow(String key, Map<String, Object> row, Object value) {
+        Object prevVal = row.get(key);
+        if (prevVal != null) {
+            if (prevVal instanceof List) {
+                ((List) prevVal).add(value);
+            } else {
+                ArrayList<Object> valList = new ArrayList<Object>();
+                valList.add(prevVal);
+                valList.add(value);
+                row.put(key, valList);
+            }
+        } else {
+            row.put(key, value);
+        }
     }
-  }
-    
-  public static final String TEMPLATE = "template";
+
+    public static final String TEMPLATE = "template";
 }

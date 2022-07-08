@@ -25,11 +25,11 @@ package org.apache.solr.handler.dataimport;
  */
 public interface EventListener {
 
-  /**
-   * Event callback
-   *
-   * @param ctx the Context in which this event was called
-   */
-  void onEvent(Context ctx);
+    /**
+     * Event callback
+     *
+     * @param ctx the Context in which this event was called
+     */
+    void onEvent(Context ctx);
 
 }

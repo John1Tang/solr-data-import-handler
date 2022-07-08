@@ -17,11 +17,12 @@
 package org.apache.solr.handler.dataimport;
 
 import org.apache.solr.common.util.ContentStream;
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Properties;
+
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
 
 /**
  * A DataSource implementation which reads from the ContentStream of a POST request
@@ -34,36 +35,36 @@ import java.util.Properties;
  * @since solr 1.4
  */
 public class ContentStreamDataSource extends DataSource<Reader> {
-  private ContextImpl context;
-  private ContentStream contentStream;
-  private Reader reader;
+    private ContextImpl context;
+    private ContentStream contentStream;
+    private Reader reader;
 
-  @Override
-  public void init(Context context, Properties initProps) {
-    this.context = (ContextImpl) context;
-  }
-
-  @Override
-  public Reader getData(String query) {
-    contentStream = context.getDocBuilder().getReqParams().getContentStream();
-    if (contentStream == null)
-      throw new DataImportHandlerException(SEVERE, "No stream available. The request has no body");
-    try {
-      return reader = contentStream.getReader();
-    } catch (IOException e) {
-      DataImportHandlerException.wrapAndThrow(SEVERE, e);
-      return null;
+    @Override
+    public void init(Context context, Properties initProps) {
+        this.context = (ContextImpl) context;
     }
-  }
 
-  @Override
-  public void close() {
-    if (contentStream != null) {
-      try {
-        if (reader == null) reader = contentStream.getReader();
-        reader.close();
-      } catch (IOException e) {
-      }
+    @Override
+    public Reader getData(String query) {
+        contentStream = context.getDocBuilder().getReqParams().getContentStream();
+        if (contentStream == null)
+            throw new DataImportHandlerException(SEVERE, "No stream available. The request has no body");
+        try {
+            return reader = contentStream.getReader();
+        } catch (IOException e) {
+            DataImportHandlerException.wrapAndThrow(SEVERE, e);
+            return null;
+        }
     }
-  }
+
+    @Override
+    public void close() {
+        if (contentStream != null) {
+            try {
+                if (reader == null) reader = contentStream.getReader();
+                reader.close();
+            } catch (IOException e) {
+            }
+        }
+    }
 }

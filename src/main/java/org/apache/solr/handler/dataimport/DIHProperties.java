@@ -23,23 +23,23 @@ import java.util.Map;
  * Implementations write out properties about the last data import
  * for use by the next import.  ex: to persist the last import timestamp
  * so that future delta imports can know what needs to be updated.
- * 
+ *
  * @lucene.experimental
  */
 public abstract class DIHProperties {
-  
-  public abstract void init(DataImporter dataImporter, Map<String, String> initParams);
-  
-  public abstract boolean isWritable();
-  
-  public abstract void persist(Map<String, Object> props);
-  
-  public abstract Map<String, Object> readIndexerProperties();
-  
-  public abstract String convertDateToString(Date d);
-  
-  public Date getCurrentTimestamp() {
-    return new Date();
-  }
-  
+
+    public abstract void init(DataImporter dataImporter, Map<String, String> initParams);
+
+    public abstract boolean isWritable();
+
+    public abstract void persist(Map<String, Object> props);
+
+    public abstract Map<String, Object> readIndexerProperties();
+
+    public abstract String convertDateToString(Date d);
+
+    public Date getCurrentTimestamp() {
+        return new Date();
+    }
+
 }

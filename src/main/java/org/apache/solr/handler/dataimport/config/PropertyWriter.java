@@ -20,19 +20,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PropertyWriter {
-  private final String type;
-  private Map<String,String> parameters;
-  
-  public PropertyWriter(String type, Map<String,String> parameters) {
-    this.type = type;
-    this.parameters = new HashMap<String,String>(parameters);
-  }
+    private final String type;
+    private final Map<String, String> parameters;
 
-  public Map<String,String> getParameters() {
-    return parameters;
-  }
-  
-  public String getType() {
-    return type;
-  }  
+    public PropertyWriter(String type, Map<String, String> parameters) {
+        this.type = type;
+        this.parameters = new HashMap<String, String>(parameters);
+    }
+
+    public Map<String, String> getParameters() {
+        return parameters;
+    }
+
+    public String getType() {
+        return type;
+    }
 }

@@ -16,11 +16,11 @@
  */
 package org.apache.solr.handler.dataimport;
 
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
-import static org.apache.solr.handler.dataimport.DataImportHandlerException.wrapAndThrow;
-
 import java.net.URLEncoder;
 import java.util.List;
+
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.SEVERE;
+import static org.apache.solr.handler.dataimport.DataImportHandlerException.wrapAndThrow;
 
 /**
  * <p>Escapes reserved characters in Solr queries</p>
@@ -28,19 +28,19 @@ import java.util.List;
  * @see org.apache.solr.client.solrj.util.ClientUtils#escapeQueryChars(String)
  */
 public class UrlEvaluator extends Evaluator {
-  @Override
-  public String evaluate(String expression, Context context) {
-    List<Object> l = parseParams(expression, context.getVariableResolver());
-    if (l.size() != 1) {
-      throw new DataImportHandlerException(SEVERE, "'encodeUrl' must have at least one parameter ");
-    }
-    String s = l.get(0).toString();
+    @Override
+    public String evaluate(String expression, Context context) {
+        List<Object> l = parseParams(expression, context.getVariableResolver());
+        if (l.size() != 1) {
+            throw new DataImportHandlerException(SEVERE, "'encodeUrl' must have at least one parameter ");
+        }
+        String s = l.get(0).toString();
 
-    try {
-      return URLEncoder.encode(s.toString(), "UTF-8");
-    } catch (Exception e) {
-      wrapAndThrow(SEVERE, e, "Unable to encode expression: " + expression + " with value: " + s);
-      return null;
+        try {
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (Exception e) {
+            wrapAndThrow(SEVERE, e, "Unable to encode expression: " + expression + " with value: " + s);
+            return null;
+        }
     }
-  }
 }

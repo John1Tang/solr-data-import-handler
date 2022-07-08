@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.solr.handler.dataimport;
+
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.handler.dataimport.config.Script;
 
@@ -32,230 +33,237 @@ import java.util.Map;
  * @since solr 1.3
  */
 public class ContextImpl extends Context {
-  protected EntityProcessorWrapper epw;
+    protected EntityProcessorWrapper epw;
 
-  private ContextImpl parent;
+    private final ContextImpl parent;
 
-  private VariableResolver resolver;
+    private final VariableResolver resolver;
 
-  private DataSource ds;
+    private final DataSource ds;
 
-  private String currProcess;
+    private final String currProcess;
 
-  private Map<String, Object> requestParams;
+    private Map<String, Object> requestParams;
 
-  private DataImporter dataImporter;
+    private DataImporter dataImporter;
 
-  private Map<String, Object> entitySession, globalSession;
+    private Map<String, Object> entitySession;
+    private final Map<String, Object> globalSession;
 
-  private Exception lastException = null;
+    private Exception lastException = null;
 
-  DocBuilder.DocWrapper doc;
+    DocBuilder.DocWrapper doc;
 
-  DocBuilder docBuilder;
+    DocBuilder docBuilder;
 
 
-
-  public ContextImpl(EntityProcessorWrapper epw, VariableResolver resolver,
-                     DataSource ds, String currProcess,
-                     Map<String, Object> global, ContextImpl parentContext, DocBuilder docBuilder) {
-    this.epw = epw;
-    this.docBuilder = docBuilder;
-    this.resolver = resolver;
-    this.ds = ds;
-    this.currProcess = currProcess;
-    if (docBuilder != null) {
-      this.requestParams = docBuilder.getReqParams().getRawParams();
-      dataImporter = docBuilder.dataImporter;
+    public ContextImpl(EntityProcessorWrapper epw, VariableResolver resolver,
+                       DataSource ds, String currProcess,
+                       Map<String, Object> global, ContextImpl parentContext, DocBuilder docBuilder) {
+        this.epw = epw;
+        this.docBuilder = docBuilder;
+        this.resolver = resolver;
+        this.ds = ds;
+        this.currProcess = currProcess;
+        if (docBuilder != null) {
+            this.requestParams = docBuilder.getReqParams().getRawParams();
+            dataImporter = docBuilder.dataImporter;
+        }
+        globalSession = global;
+        parent = parentContext;
     }
-    globalSession = global;
-    parent = parentContext;
-  }
 
-  @Override
-  public String getEntityAttribute(String name) {
-    return epw==null || epw.getEntity() == null ? null : epw.getEntity().getAllAttributes().get(name);
-  }
-
-  @Override
-  public String getResolvedEntityAttribute(String name) {
-    return epw==null || epw.getEntity() == null ? null : resolver.replaceTokens(epw.getEntity().getAllAttributes().get(name));
-  }
-
-  @Override
-  public List<Map<String, String>> getAllEntityFields() {
-    return epw==null || epw.getEntity() == null ? Collections.EMPTY_LIST : epw.getEntity().getAllFieldsList();
-  }
-
-  @Override
-  public VariableResolver getVariableResolver() {
-    return resolver;
-  }
-
-  @Override
-  public DataSource getDataSource() {
-    if (ds != null) return ds;
-    if(epw==null) { return null; }
-    if (epw!=null && epw.getDatasource() == null) {
-      epw.setDatasource(dataImporter.getDataSourceInstance(epw.getEntity(), epw.getEntity().getDataSourceName(), this));
+    @Override
+    public String getEntityAttribute(String name) {
+        return epw == null || epw.getEntity() == null ? null : epw.getEntity().getAllAttributes().get(name);
     }
-    if (epw!=null && epw.getDatasource() != null && docBuilder != null && docBuilder.verboseDebug &&
-             Context.FULL_DUMP.equals(currentProcess())) {
-      //debug is not yet implemented properly for deltas
-      epw.setDatasource(docBuilder.getDebugLogger().wrapDs(epw.getDatasource()));
+
+    @Override
+    public String getResolvedEntityAttribute(String name) {
+        return epw == null || epw.getEntity() == null ? null : resolver.replaceTokens(epw.getEntity().getAllAttributes().get(name));
     }
-    return epw.getDatasource();
-  }
 
-  @Override
-  public DataSource getDataSource(String name) {
-    return dataImporter.getDataSourceInstance(epw==null ? null : epw.getEntity(), name, this);
-  }
-
-  @Override
-  public boolean isRootEntity() {
-    return epw==null ? false : epw.getEntity().isDocRoot();
-  }
-
-  @Override
-  public String currentProcess() {
-    return currProcess;
-  }
-
-  @Override
-  public Map<String, Object> getRequestParameters() {
-    return requestParams;
-  }
-
-  @Override
-  public EntityProcessor getEntityProcessor() {
-    return epw;
-  }
-
-  @Override
-  public void setSessionAttribute(String name, Object val, String scope) {
-    if(name == null) {
-      return;
+    @Override
+    public List<Map<String, String>> getAllEntityFields() {
+        return epw == null || epw.getEntity() == null ? Collections.EMPTY_LIST : epw.getEntity().getAllFieldsList();
     }
-    if (Context.SCOPE_ENTITY.equals(scope)) {
-      if (entitySession == null) {
-        entitySession = new HashMap<>();
-      }
-      entitySession.put(name, val);
-    } else if (Context.SCOPE_GLOBAL.equals(scope)) {
-      if (globalSession != null) {
-        globalSession.put(name, val);
-      }
-    } else if (Context.SCOPE_DOC.equals(scope)) {
-      DocBuilder.DocWrapper doc = getDocument();
-      if (doc != null) {
-        doc.setSessionAttribute(name, val);
-      }
-    } else if (SCOPE_SOLR_CORE.equals(scope)){
-      if(dataImporter != null) {
-        dataImporter.putToCoreScopeSession(name, val);
-      }
+
+    @Override
+    public VariableResolver getVariableResolver() {
+        return resolver;
     }
-  }
 
-  @Override
-  public Object getSessionAttribute(String name, String scope) {
-    if (Context.SCOPE_ENTITY.equals(scope)) {
-      if (entitySession == null)
-        return null;
-      return entitySession.get(name);
-    } else if (Context.SCOPE_GLOBAL.equals(scope)) {
-      if (globalSession != null) {
-        return globalSession.get(name);
-      }
-    } else if (Context.SCOPE_DOC.equals(scope)) {
-      DocBuilder.DocWrapper doc = getDocument();      
-      return doc == null ? null: doc.getSessionAttribute(name);
-    } else if (SCOPE_SOLR_CORE.equals(scope)){
-       return dataImporter == null ? null : dataImporter.getFromCoreScopeSession(name);
+    @Override
+    public DataSource getDataSource() {
+        if (ds != null) return ds;
+        if (epw == null) {
+            return null;
+        }
+        if (epw != null && epw.getDatasource() == null) {
+            epw.setDatasource(dataImporter.getDataSourceInstance(epw.getEntity(), epw.getEntity().getDataSourceName(), this));
+        }
+        if (epw != null && epw.getDatasource() != null && docBuilder != null && docBuilder.verboseDebug &&
+                Context.FULL_DUMP.equals(currentProcess())) {
+            //debug is not yet implemented properly for deltas
+            epw.setDatasource(docBuilder.getDebugLogger().wrapDs(epw.getDatasource()));
+        }
+        return epw.getDatasource();
     }
-    return null;
-  }
 
-  @Override
-  public Context getParentContext() {
-    return parent;
-  }
+    @Override
+    public DataSource getDataSource(String name) {
+        return dataImporter.getDataSourceInstance(epw == null ? null : epw.getEntity(), name, this);
+    }
 
-  private DocBuilder.DocWrapper getDocument() {
-    ContextImpl c = this;
-    while (true) {
-      if (c.doc != null)
-        return c.doc;
-      if (c.parent != null)
-        c = c.parent;
-      else
+    @Override
+    public boolean isRootEntity() {
+        return epw != null && epw.getEntity().isDocRoot();
+    }
+
+    @Override
+    public String currentProcess() {
+        return currProcess;
+    }
+
+    @Override
+    public Map<String, Object> getRequestParameters() {
+        return requestParams;
+    }
+
+    @Override
+    public EntityProcessor getEntityProcessor() {
+        return epw;
+    }
+
+    @Override
+    public void setSessionAttribute(String name, Object val, String scope) {
+        if (name == null) {
+            return;
+        }
+        if (Context.SCOPE_ENTITY.equals(scope)) {
+            if (entitySession == null) {
+                entitySession = new HashMap<>();
+            }
+            entitySession.put(name, val);
+        } else if (Context.SCOPE_GLOBAL.equals(scope)) {
+            if (globalSession != null) {
+                globalSession.put(name, val);
+            }
+        } else if (Context.SCOPE_DOC.equals(scope)) {
+            DocBuilder.DocWrapper doc = getDocument();
+            if (doc != null) {
+                doc.setSessionAttribute(name, val);
+            }
+        } else if (SCOPE_SOLR_CORE.equals(scope)) {
+            if (dataImporter != null) {
+                dataImporter.putToCoreScopeSession(name, val);
+            }
+        }
+    }
+
+    @Override
+    public Object getSessionAttribute(String name, String scope) {
+        if (Context.SCOPE_ENTITY.equals(scope)) {
+            if (entitySession == null)
+                return null;
+            return entitySession.get(name);
+        } else if (Context.SCOPE_GLOBAL.equals(scope)) {
+            if (globalSession != null) {
+                return globalSession.get(name);
+            }
+        } else if (Context.SCOPE_DOC.equals(scope)) {
+            DocBuilder.DocWrapper doc = getDocument();
+            return doc == null ? null : doc.getSessionAttribute(name);
+        } else if (SCOPE_SOLR_CORE.equals(scope)) {
+            return dataImporter == null ? null : dataImporter.getFromCoreScopeSession(name);
+        }
         return null;
     }
-  }
 
-  void setDoc(DocBuilder.DocWrapper docWrapper) {
-    this.doc = docWrapper;
-  }
-
-
-  @Override
-  public SolrCore getSolrCore() {
-    return dataImporter == null ? null : dataImporter.getCore();
-  }
-
-
-  @Override
-  public Map<String, Object> getStats() {
-    return docBuilder != null ? docBuilder.importStatistics.getStatsSnapshot() : Collections.<String, Object>emptyMap();
-  }
-
-  @Override
-  public String getScript() {
-    if (dataImporter != null) {
-      Script script = dataImporter.getConfig().getScript();
-      return script == null ? null : script.getText();
+    @Override
+    public Context getParentContext() {
+        return parent;
     }
-    return null;
-  }
-  
-  @Override
-  public String getScriptLanguage() {
-    if (dataImporter != null) {
-      Script script = dataImporter.getConfig().getScript();
-      return script == null ? null : script.getLanguage();
+
+    private DocBuilder.DocWrapper getDocument() {
+        ContextImpl c = this;
+        while (true) {
+            if (c.doc != null)
+                return c.doc;
+            if (c.parent != null)
+                c = c.parent;
+            else
+                return null;
+        }
     }
-    return null;
-  }
 
-  @Override
-  public void deleteDoc(String id) {
-    if(docBuilder != null){
-      docBuilder.writer.deleteDoc(id);
+    void setDoc(DocBuilder.DocWrapper docWrapper) {
+        this.doc = docWrapper;
     }
-  }
 
-  @Override
-  public void deleteDocByQuery(String query) {
-    if(docBuilder != null){
-      docBuilder.writer.deleteByQuery(query);
-    } 
-  }
 
-  DocBuilder getDocBuilder(){
-    return docBuilder;
-  }
-  @Override
-  public Object resolve(String var) {
-    return resolver.resolve(var);
-  }
+    @Override
+    public SolrCore getSolrCore() {
+        return dataImporter == null ? null : dataImporter.getCore();
+    }
 
-  @Override
-  public String replaceTokens(String template) {
-    return resolver.replaceTokens(template);
-  }
 
-  public Exception getLastException() { return lastException; }
+    @Override
+    public Map<String, Object> getStats() {
+        return docBuilder != null ? docBuilder.importStatistics.getStatsSnapshot() : Collections.emptyMap();
+    }
 
-  public void setLastException(Exception lastException) {this.lastException = lastException; }
+    @Override
+    public String getScript() {
+        if (dataImporter != null) {
+            Script script = dataImporter.getConfig().getScript();
+            return script == null ? null : script.getText();
+        }
+        return null;
+    }
+
+    @Override
+    public String getScriptLanguage() {
+        if (dataImporter != null) {
+            Script script = dataImporter.getConfig().getScript();
+            return script == null ? null : script.getLanguage();
+        }
+        return null;
+    }
+
+    @Override
+    public void deleteDoc(String id) {
+        if (docBuilder != null) {
+            docBuilder.writer.deleteDoc(id);
+        }
+    }
+
+    @Override
+    public void deleteDocByQuery(String query) {
+        if (docBuilder != null) {
+            docBuilder.writer.deleteByQuery(query);
+        }
+    }
+
+    DocBuilder getDocBuilder() {
+        return docBuilder;
+    }
+
+    @Override
+    public Object resolve(String var) {
+        return resolver.resolve(var);
+    }
+
+    @Override
+    public String replaceTokens(String template) {
+        return resolver.replaceTokens(template);
+    }
+
+    public Exception getLastException() {
+        return lastException;
+    }
+
+    public void setLastException(Exception lastException) {
+        this.lastException = lastException;
+    }
 }
