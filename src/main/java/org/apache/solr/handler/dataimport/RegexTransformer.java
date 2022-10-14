@@ -16,6 +16,7 @@
  */
 package org.apache.solr.handler.dataimport;
 
+import org.apache.solr.common.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,62 +55,55 @@ public class RegexTransformer extends Transformer {
             String splitBy = ctx.replaceTokens(field.get(SPLIT_BY));
             String replaceWith = ctx.replaceTokens(field.get(REPLACE_WITH));
             String groupNames = ctx.replaceTokens(field.get(GROUP_NAMES));
-            if (reStr != null || splitBy != null) {
-                String srcColName = field.get(SRC_COL_NAME);
-                if (srcColName == null) {
-                    srcColName = col;
-                }
-                Object tmpVal = row.get(srcColName);
-                if (tmpVal == null)
-                    continue;
 
-                if (tmpVal instanceof List) {
-                    List<String> inputs = (List<String>) tmpVal;
-                    List results = new ArrayList();
-                    Map<String, List> otherVars = null;
-                    for (String input : inputs) {
-                        Object o = process(col, reStr, splitBy, replaceWith, input, groupNames);
-                        if (o != null) {
-                            if (o instanceof Map) {
-                                Map map = (Map) o;
-                                for (Object e : map.entrySet()) {
-                                    Map.Entry<String, Object> entry = (Map.Entry<String, Object>) e;
-                                    List l = results;
-                                    if (!col.equals(entry.getKey())) {
-                                        if (otherVars == null) otherVars = new HashMap<>();
-                                        l = otherVars.get(entry.getKey());
-                                        if (l == null) {
-                                            l = new ArrayList();
-                                            otherVars.put(entry.getKey(), l);
-                                        }
-                                    }
-                                    if (entry.getValue() instanceof Collection) {
-                                        l.addAll((Collection) entry.getValue());
-                                    } else {
-                                        l.add(entry.getValue());
-                                    }
-                                }
+            if (reStr == null && splitBy == null) continue;
+
+            String srcColName = field.getOrDefault(SRC_COL_NAME, col);
+
+            Object tmpVal = row.get(srcColName);
+            if (tmpVal == null)
+                continue;
+
+            if (tmpVal instanceof List) {
+                List<String> inputs = (List<String>) tmpVal;
+                List results = new ArrayList();
+                Map<String, List> otherVars = null;
+
+                for (String input : inputs) {
+                    Object o = process(col, reStr, splitBy, replaceWith, input, groupNames);
+                    if (o == null) continue;
+
+                    if (o instanceof Map) {
+                        Map<String, Object> map = (Map) o;
+                        for (Map.Entry<String, Object> entry : map.entrySet()) {
+                            List l = results;
+                            if (!col.equals(entry.getKey())) {
+                                if (otherVars == null) otherVars = new HashMap<>();
+                                l = otherVars.computeIfAbsent(entry.getKey(), (String key) -> new ArrayList<>());
+                            }
+                            if (entry.getValue() instanceof Collection) {
+                                l.addAll((Collection) entry.getValue());
                             } else {
-                                if (o instanceof Collection) {
-                                    results.addAll((Collection) o);
-                                } else {
-                                    results.add(o);
-                                }
+                                l.add(entry.getValue());
                             }
                         }
+                    } else if (o instanceof Collection) {
+                        results.addAll((Collection) o);
+                    } else {
+                        results.add(o);
                     }
-                    row.put(col, results);
-                    if (otherVars != null) row.putAll(otherVars);
+                }
+                row.put(col, results);
+                if (otherVars != null) row.putAll(otherVars);
+            } else {
+                String value = tmpVal.toString();
+                Object o = process(col, reStr, splitBy, replaceWith, value, groupNames);
+                if (o == null) continue;
+                
+                if (o instanceof Map) {
+                    row.putAll((Map) o);
                 } else {
-                    String value = tmpVal.toString();
-                    Object o = process(col, reStr, splitBy, replaceWith, value, groupNames);
-                    if (o != null) {
-                        if (o instanceof Map) {
-                            row.putAll((Map) o);
-                        } else {
-                            row.put(col, o);
-                        }
-                    }
+                    row.put(col, o);
                 }
             }
         }
@@ -118,15 +112,12 @@ public class RegexTransformer extends Transformer {
 
     private Object process(String col, String reStr, String splitBy,
                            String replaceWith, String value, String groupNames) {
-        if (splitBy != null) {
-            return readBySplit(splitBy, value);
-        } else if (replaceWith != null) {
+        if (splitBy != null) return readBySplit(splitBy, value);
+        else if (replaceWith != null) {
             Pattern p = getPattern(reStr);
             Matcher m = p.matcher(value);
             return m.find() ? m.replaceAll(replaceWith) : value;
-        } else {
-            return readfromRegExp(reStr, value, col, groupNames);
-        }
+        } else return readfromRegExp(reStr, value, col, groupNames);
     }
 
     @SuppressWarnings("unchecked")
@@ -144,46 +135,55 @@ public class RegexTransformer extends Transformer {
         }
         Pattern regexp = getPattern(reStr);
         Matcher m = regexp.matcher(value);
-        if (m.find() && m.groupCount() > 0) {
-            if (m.groupCount() > 1) {
-                List l = null;
-                Map<String, String> map = null;
-                if (groupNames == null) {
-                    l = new ArrayList();
-                } else {
-                    map = new HashMap<>();
+        if (!m.find() || m.groupCount() <= 0) return null;
+        if (m.groupCount() == 1) return m.group(1);
+
+        if (groupNames == null || groupNames.length == 1) {
+            List l = new ArrayList(m.groupCount());
+            for (int i = 1, j = m.groupCount(); i <= j; i++) {
+                try {
+                    l.add(m.group(i));
+                } catch (Exception e) {
+                    log.warn("Parsing failed for field : " + columnName, e);
                 }
-                for (int i = 1; i <= m.groupCount(); i++) {
-                    try {
-                        if (l != null) {
-                            l.add(m.group(i));
-                        } else if (map != null) {
-                            if (i <= groupNames.length) {
-                                String nameOfGroup = groupNames[i - 1];
-                                if (nameOfGroup != null && nameOfGroup.trim().length() > 0) {
-                                    map.put(nameOfGroup, m.group(i));
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.warn("Parsing failed for field : " + columnName, e);
-                    }
-                }
-                return l == null ? map : l;
-            } else {
-                return m.group(1);
             }
+            return l;
         }
 
-        return null;
+        Map<String, String> map = new HashMap<>();
+        for (int i = 1, j = m.groupCount(); i <= j; i++) {
+            try {
+                String nameOfGroup = groupNames[i - 1];
+                if (!StringUtils.isEmpty(nameOfGroup))
+                    map.put(nameOfGroup, m.group(i));
+            } catch (Exception e) {
+                log.warn("Parsing failed for field : " + columnName, e);
+            }
+        }
+        return map;
+//                for (int i = 1; i <= m.groupCount(); i++) {
+//                    try {
+//                        if (l != null) {
+//                            l.add(m.group(i));
+//                        } else if (map != null) {
+//                            if (i <= groupNames.length) {
+//                                String nameOfGroup = groupNames[i - 1];
+//                                if (nameOfGroup != null && nameOfGroup.trim().length() > 0) {
+//                                    map.put(nameOfGroup, m.group(i));
+//                                }
+//                            }
+//                        }
+//                    } catch (Exception e) {
+//                        log.warn("Parsing failed for field : " + columnName, e);
+//                    }
+//                }
+//                return l == null ? map : l;
     }
 
     private Pattern getPattern(String reStr) {
-        Pattern result = PATTERN_CACHE.get(reStr);
-        if (result == null) {
-            PATTERN_CACHE.put(reStr, result = Pattern.compile(reStr));
-        }
-        return result;
+        return PATTERN_CACHE.computeIfAbsent(reStr, (String key) -> {
+            return Pattern.compile(key);
+        });
     }
 
     private final HashMap<String, Pattern> PATTERN_CACHE = new HashMap<>();

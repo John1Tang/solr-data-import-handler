@@ -546,7 +546,7 @@ public class DataImporter {
 
         public static final String DEBUG_NOT_ENABLED = "Debug not enabled. Add a tag <str name=\"enableDebug\">true</str> in solrconfig.xml";
 
-        public static final String CONFIG_RELOADED = "Configuration Re-loaded sucessfully";
+        public static final String CONFIG_RELOADED = "Configuration Re-loaded successfully";
 
         public static final String CONFIG_NOT_RELOADED = "Configuration NOT Re-loaded...Data Importer is busy.";
 
