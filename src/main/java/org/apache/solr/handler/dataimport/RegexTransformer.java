@@ -99,7 +99,7 @@ public class RegexTransformer extends Transformer {
                 String value = tmpVal.toString();
                 Object o = process(col, reStr, splitBy, replaceWith, value, groupNames);
                 if (o == null) continue;
-                
+
                 if (o instanceof Map) {
                     row.putAll((Map) o);
                 } else {
@@ -117,7 +117,7 @@ public class RegexTransformer extends Transformer {
             Pattern p = getPattern(reStr);
             Matcher m = p.matcher(value);
             return m.find() ? m.replaceAll(replaceWith) : value;
-        } else return readfromRegExp(reStr, value, col, groupNames);
+        } else return readFromRegExp(reStr, value, col, groupNames);
     }
 
     @SuppressWarnings("unchecked")
@@ -128,7 +128,7 @@ public class RegexTransformer extends Transformer {
     }
 
     @SuppressWarnings("unchecked")
-    private Object readfromRegExp(String reStr, String value, String columnName, String gNames) {
+    private Object readFromRegExp(String reStr, String value, String columnName, String gNames) {
         String[] groupNames = null;
         if (gNames != null && gNames.trim().length() > 0) {
             groupNames = gNames.split(",");
@@ -136,7 +136,14 @@ public class RegexTransformer extends Transformer {
         Pattern regexp = getPattern(reStr);
         Matcher m = regexp.matcher(value);
         if (!m.find() || m.groupCount() <= 0) return null;
-        if (m.groupCount() == 1) return m.group(1);
+        if (m.groupCount() == 1) {
+            List<String> reLi = new LinkedList();
+            reLi.add(m.group(1));
+            while (m.find()) {
+                reLi.add(m.group(1));
+            }
+            return reLi.size() == 1 ? reLi.get(1) : reLi;
+        }
 
         if (groupNames == null || groupNames.length == 1) {
             List l = new ArrayList(m.groupCount());
