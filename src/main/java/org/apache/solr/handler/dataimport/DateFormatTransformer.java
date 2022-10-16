@@ -20,8 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -88,6 +90,7 @@ public class DateFormatTransformer extends Transformer {
 
     private Date process(Object value, String format, Locale locale) throws ParseException {
         if (value == null) return null;
+        if (value instanceof LocalDateTime) return Timestamp.valueOf((LocalDateTime) value);
         String strVal = value.toString().trim();
         if (strVal.length() == 0)
             return null;
