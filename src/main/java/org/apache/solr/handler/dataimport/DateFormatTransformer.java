@@ -59,27 +59,24 @@ public class DateFormatTransformer extends Transformer {
             }
 
             String fmt = map.get(DATE_TIME_FMT);
-            if (fmt == null)
-                continue;
+            if (fmt == null) continue;
+
             VariableResolver resolver = context.getVariableResolver();
             fmt = resolver.replaceTokens(fmt);
             String column = map.get(DataImporter.COLUMN);
-            String srcCol = map.get(RegexTransformer.SRC_COL_NAME);
-            if (srcCol == null)
-                srcCol = column;
+            String srcCol = map.getOrDefault(RegexTransformer.SRC_COL_NAME, column);
+
             try {
                 Object o = aRow.get(srcCol);
                 if (o instanceof List) {
                     List inputs = (List) o;
-                    List<Date> results = new ArrayList<>();
+                    List<Date> results = new ArrayList<>(inputs.size());
                     for (Object input : inputs) {
                         results.add(process(input, fmt, locale));
                     }
                     aRow.put(column, results);
-                } else {
-                    if (o != null) {
-                        aRow.put(column, process(o, fmt, locale));
-                    }
+                } else if (o != null) {
+                    aRow.put(column, process(o, fmt, locale));
                 }
             } catch (ParseException e) {
                 log.warn("Could not parse a Date field ", e);
@@ -91,14 +88,11 @@ public class DateFormatTransformer extends Transformer {
     private Date process(Object value, String format, Locale locale) throws ParseException {
         if (value == null) return null;
         if (value instanceof LocalDateTime) return Timestamp.valueOf((LocalDateTime) value);
+
         String strVal = value.toString().trim();
-        if (strVal.length() == 0)
-            return null;
-        SimpleDateFormat fmt = fmtCache.get(format);
-        if (fmt == null) {
-            fmt = new SimpleDateFormat(format, locale);
-            fmtCache.put(format, fmt);
-        }
+        if (strVal.length() == 0) return null;
+
+        SimpleDateFormat fmt = fmtCache.computeIfAbsent(format, (String key) -> new SimpleDateFormat(format, locale));
         return fmt.parse(strVal);
     }
 
