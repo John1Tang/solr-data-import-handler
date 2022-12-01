@@ -21,12 +21,15 @@ import static org.apache.solr.handler.dataimport.RegexTransformer.GROUP_NAMES;
 import static org.apache.solr.handler.dataimport.RegexTransformer.REPLACE_WITH;
 import static org.apache.solr.handler.dataimport.DataImporter.COLUMN;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * <p> Test for RegexTransformer </p>
@@ -205,4 +208,62 @@ public class TestRegexTransformer extends AbstractDataImportHandlerTestCase {
     fields.add(getField("rowdata", "string", null, "rowdata", null));
     return fields;
   }
+
+  private Pattern getPattern(String reStr) {
+    return PATTERN_CACHE.computeIfAbsent(reStr, (String key) -> {
+      return Pattern.compile(key);
+    });
+  }
+
+  private final HashMap<String, Pattern> PATTERN_CACHE = new HashMap<>();
+
+  @Test
+  public void testRegexp() {
+
+    String value = "a:2:{i:0;s:2:\"de\";i:1;s:2:\"en\";}";
+    String reStr = "\"([^\"]*)\"|:([\\d]{1}):";
+
+    System.out.println("value: " + value + ", reStr: " + reStr);
+    Object a = reg(reStr, value);
+
+
+    System.out.println(a);
+  }
+
+  private Object reg(String reStr, String value) {
+    Pattern regexp = getPattern(reStr);
+    Matcher m = regexp.matcher(value);
+    if (!m.find() || m.groupCount() <= 0) return null;
+    if (m.groupCount() == 1) {
+      List<String> reLi = new ArrayList<>();
+      String cur = m.group(1);
+      reLi.add(cur);
+      while (m.find()) {
+        reLi.add(cur);
+      }
+      return reLi.size() == 1 ? reLi.get(0) : reLi;
+    }
+
+
+    String cur = "";
+
+    for (int i = 1; i <= m.groupCount(); i++) {
+      cur = m.group(i);
+      if (StringUtils.isNotEmpty(cur)) {
+        System.out.println("1=====i: " + i + ", cur: " + cur);
+      }
+    }
+
+    while (m.find()) {
+      for (int i = 1; i <= m.groupCount(); i++) {
+
+        cur = m.group(i);
+        if (StringUtils.isNotEmpty(cur)) {
+          System.out.println("2=====i: " + i + ", cur: " + cur);
+        }
+      }
+    }
+    return "";
+  }
+
 }
