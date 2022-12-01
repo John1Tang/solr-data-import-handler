@@ -135,14 +135,7 @@ public class RegexTransformer extends Transformer {
         Pattern regexp = getPattern(reStr);
         Matcher m = regexp.matcher(value);
         if (!m.find() || m.groupCount() <= 0) return null;
-        if (m.groupCount() == 1) {
-            List<String> reLi = new LinkedList();
-            reLi.add(m.group(1));
-            while (m.find()) {
-                reLi.add(m.group(1));
-            }
-            return reLi.size() == 1 ? reLi.get(1) : reLi;
-        }
+        if (m.groupCount() == 1) return m.group(1);
 
         if (groupNames == null || groupNames.length == 1) {
             List l = new ArrayList(m.groupCount());
