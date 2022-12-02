@@ -141,7 +141,7 @@ public class RegexTransformer extends Transformer {
             while (m.find()) {
                 reLi.add(m.group(1));
             }
-            return reLi.size() == 1 ? reLi.get(1) : reLi;
+            return reLi.size() == 1 ? reLi.get(0) : reLi;
         }
 
         if (groupNames == null || groupNames.length == 1) {
